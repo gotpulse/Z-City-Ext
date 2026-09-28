@@ -359,7 +359,7 @@ bulletHit = function(ply, tr, dmgInfo, bullet, Weapon)
 
 	timer.Simple(0,function()
 		if not bullet then return end
-		callbackBullet(Weapon or inflictor, tr, dmg, force, bullet, penetration, penmul)
+		callbackBullet(Weapon or inflictor, tr, dmg, force, bullet, penetration)
 	end)
 end
 

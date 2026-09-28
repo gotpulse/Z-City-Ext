@@ -831,6 +831,7 @@ hg.ammotypes = {
 			NoSpin = true,
 		},
 		BulletSettings = {
+			RubberBullets = true,
 			Damage = 60,
 			Force = 150,
 			Penetration = 1.1,
@@ -1707,6 +1708,7 @@ hg.ammotypes = {
 			NoSpin = true,
 		},
 		BulletSettings = {
+			RubberBullets = true,
 			Damage = 30,
 			Force = 30,
 			Penetration = 0.8,
@@ -1823,6 +1825,7 @@ hg.ammotypes = {
 			NoSpin = true,
 		},
 		BulletSettings = {
+			RubberBullets = true,
 			Damage = 35,
 			Force = 32,
 			Penetration = 2.3,

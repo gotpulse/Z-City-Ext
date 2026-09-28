@@ -61,6 +61,9 @@ end
 function ENT:ApplyData(ply,equipment)
 	ply:SetNWString("ArmorMaterials" .. equipment, self.mat)
 	ply:SetNWInt("ArmorSkins" .. equipment, self.skin or 0)
+
+	ply.armors_health = ply.armors_health or {}
+	ply.armors_health[equipment] = self.armorHealth
 end
 
 function ENT:ReciveData(ply,equipment)
@@ -70,6 +73,11 @@ function ENT:ReciveData(ply,equipment)
 
 	self.skin = ply:GetNWInt("ArmorSkins" .. equipment, self.skin or 0)
 	self:SetSkin(self.skin)
+
+	if ply.armors_health then
+		self.armorHealth = ply.armors_health[equipment]
+		ply.armors_health[equipment] = nil
+	end
 end
 
 hook.Add("ItemsTransfered","TransferMats",function(ply, ragdoll)
@@ -81,6 +89,9 @@ hook.Add("ItemsTransfered","TransferMats",function(ply, ragdoll)
 		ragdoll:SetNWInt("ArmorSkins" .. v, ply:GetNWInt("ArmorSkins" .. v))
 		ply:SetNWInt("ArmorSkins" .. v, nil)
 	end
+
+	ragdoll.armors_health = ply.armors_health
+	ply.armors_health = {}
 end)
 
 hook.Add("ItemTransfer", "TransferMats", function(ply, ent, placement, armor)
@@ -89,4 +100,8 @@ hook.Add("ItemTransfer", "TransferMats", function(ply, ent, placement, armor)
 
 	ply:SetNWInt("ArmorSkins" .. armor, ent:GetNWInt("ArmorSkins" .. armor))
 	ent:SetNWInt("ArmorSkins" .. armor, nil)
+
+	ply.armors_health = ply.armors_health or {}
+	ply.armors_health[armor] = ent.armors_health and ent.armors_health[armor]
+	if ent.armors_health then ent.armors_health[armor] = nil end
 end)

@@ -226,12 +226,24 @@ local function protec(org, bone, dmg, dmgInfo, placement, armor, scale, scalepro
 	if not force and org.owner.armors[placement] ~= armor then return 0 end
 	force = nil
 	
-	local prot = placement and hg.armor[placement] and armor and hg.armor[placement][armor] and (hg.armor[placement][armor].protection - (dmgInfo:GetInflictor().bullet and dmgInfo:GetInflictor().bullet.Penetration or 1)) or (10 - ( dmgInfo:GetInflictor().bullet and dmgInfo:GetInflictor().bullet.Penetration or 1))
-	
-	org.owner.armors_health = org.owner.armors_health or {}
+	local penetration = dmgInfo:GetInflictor().bullet and dmgInfo:GetInflictor().bullet.Penetration or 1
+	local protection = placement and hg.armor[placement] and armor and hg.armor[placement][armor] and hg.armor[placement][armor].protection or 10
 
-	prot = prot * (org.owner.armors_health[armor] or 1)
-	
+	org.owner.armors_health = org.owner.armors_health or {}
+	local health = org.owner.armors_health[armor] or 1
+
+	-- worn armor protects less, same as the new equipment system (protection * durability - penetration)
+	local prot = protection * health - penetration
+
+	-- bullets wear the armor down (protovisor handles its own wear); a full shotgun shell wears it like one round
+	if armor ~= "protovisor" and dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT) then
+		local bullet = dmgInfo:GetInflictor().bullet
+		local ammo = bullet and bullet.AmmoType and hg.ammotypeshuy[bullet.AmmoType]
+		local pellets = math.max(ammo and ammo.BulletSettings and ammo.BulletSettings.NumBullet or 1, 1)
+
+		org.owner.armors_health[armor] = math.max(health - penetration / math.max(protection, 1) * 0.05 / pellets, 0)
+	end
+
 	if punch then
 		if org.owner:IsPlayer() and org.alive and dmgInfo:IsDamageType(DMG_BUCKSHOT + DMG_BULLET) then
 			org.owner:ViewPunch(AngleRand(-30, 30))

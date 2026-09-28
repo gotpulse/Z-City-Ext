@@ -35,10 +35,21 @@ All paths are relative to the repo root.
 
 ---
 
-## 2. Bugs & dead wiring found during the review (fix first)
+## 2. Bugs & dead wiring found during the review
 
-| # | Issue | Location | Effect |
+All fixed on this branch.
+
+| # | Issue | Location | Fix |
 |---|---|---|---|
+| B1 | `hg.organism.CoughBlood` used undefined `ent`, `bon`, `mat` (Lua error on the blood-spit branch, reachable from `sv_phrases.lua:480`) | `organism/tier_1/modules/sv_blood.lua` | Resolve the character, head bone and matrix locally; bail out if missing. |
+| B2 | `insolid` read before its `local` declaration, so blood decals were placed even from inside solids | `particles/cl_blood.lua` | Declare `insolid` before the decal check. |
+| B3 | `PreHomigradDamage` passed `hitgroup`, `hitBoxs`, `inputHole` as undefined globals | `organism/tier_1/sv_input.lua` | Still fires before the organ trace (hooks scale damage there), now passes the hitgroup from the pre-trace and empty tables. |
+| B4 | `RubberBullets` read but never set; would also have errored on a nil `Penetration` | `modules_input/sv_bone.lua`, `sh_ammostuff.lua` | New `BulletSettings.RubberBullets` flag on 12/70 beanbag, .45 Rubber, 18x45mm Traumatic; resolved from the ammo table (weapon flag still honoured) with a safe penetration fallback. |
+| B5 | Stray undefined `penmul` argument passed to `callbackBullet` (which only takes 6 params, so it was ignored) | `weapons/homigrad_base/sh_bullet.lua` | Removed. |
+| B6 | `BulletSettings.Mass` unused for dismemberment | `organism/tier_1/sv_input.lua` | Heavy rounds build the limb/head gib stack faster: `clamp(sqrt(Mass/10), 1, 1.5)`, bullets only, rubber excluded, never weaker than before. Toggle: `hg_dmgstack_mass` (default 1). |
+| B7 | Legacy armor never degraded, and its health multiplier couldn't change stop/penetrate outcomes | `lua/homigrad/sv_equipment.lua`, `lua/entities/armor_base/init.lua` | Protection is now `protection * health - penetration` (same as the new equipment system; identical for fresh armor). Each bullet wears it by `pen / protection * 0.05` (divided by pellet count for shotguns). Wear follows the item on drop, pickup, death and looting. |
+
+---|---|---|---|
 | B1 | `hg.organism.CoughBlood` uses undefined `ent`, `bon`, `mat` | `organism/tier_1/modules/sv_blood.lua:266-285` (called from `sv_phrases.lua:480`) | Lua error on the 1-in-5 blood-spit branch whenever a player with vomit in the throat tries to talk. |
 | B2 | `insolid` read before its `local` declaration | `particles/cl_blood.lua:229` vs `:235` | Condition is always true (global nil); decals get placed even from inside solids. |
 | B3 | `PreHomigradDamage` receives `hitgroup`, `hitBoxs`, `inputHole` before they exist | `sv_input.lua:610` | Hook consumers always get `nil` for those args — hurts every extension. |
@@ -57,7 +68,7 @@ Scores: **Impact** 1-5 (how much it changes feel/gameplay), **Effort** S/M/L/XL,
 | ID | Feature | Builds on | Impact | Effort |
 |---|---|---|---|---|
 | A1 | **Gore settings suite**: `hg_gore` (server master), `hg_dismemberment`, `hg_headgib`, `hg_gib_lifetime`, `hg_gore_scale`; client `hg_gore_level` (0 = no gibs/sprays, 1 = reduced, 2 = full) and add them to `cl_menu_options.lua` "Blood" category | `AmputateLimb`, `Gib_Input`, `SpawnMeatGore`, blood particle receivers | 4 | S |
-| A2 | Fix bugs B1-B7 | — | 3 | S |
+| A2 | ~~Fix bugs B1-B7~~ (done) | — | 3 | S |
 | A3 | **Gore API**: `hg.gore.RegisterWoundType`, `hg.gore.RegisterGib`, `hg.gore.Sever(ent, bone, opts)`, uniform `OnSever`/`OnGib` hooks so gamemodes and addons extend instead of patching `sv_input.lua` | Existing hooks | 3 | M |
 
 ### B. Dismemberment & gibbing
@@ -130,7 +141,7 @@ Ranked by **value = impact x leverage ÷ effort**, i.e. how much player-visible 
 
 | Rank | ID | Feature | Why here |
 |---|---|---|---|
-| 1 | A2 | Fix bugs B1-B7 | Cheap, removes Lua errors and makes hooks reliable before building on them. |
+| 1 | A2 | ~~Fix bugs B1-B7~~ **Done** | Cheap, removes Lua errors and makes hooks reliable before building on them. |
 | 2 | A1 | Gore settings suite | Required so heavier gore doesn't alienate servers/players; gates everything below. |
 | 3 | C-1 | Visible wound decals on bodies | Biggest visual gap; position/angle data is **already networked** — only rendering is missing. |
 | 4 | D-1 | Ammo behaviours (HP/AP/tumble/frag) | Plugs straight into `PreTraceOrganBulletDamage` + ammo table; deepens every gunfight. |

@@ -271,6 +271,14 @@ function hg.organism.CoughBlood(org)
 	ply.lastPhr = phr
 
 	if math.random(5) == 1 then
+		local ent = hg.GetCurrentCharacter(ply)
+		if !IsValid(ent) then return end
+
+		local bon = "ValveBiped.Bip01_Head1"
+		local bone = ent:LookupBone(bon)
+		local mat = bone and ent:GetBoneMatrix(bone)
+		if !mat then return end
+
 		org.vomitInThroat = nil
 
 		net.Start("bloodsquirt2")

@@ -420,6 +420,7 @@ function hg.ExplodeHead(ent)
 end
 
 local hg_bloodimpacts = ConVarExists("hg_bloodimpacts") and GetConVar("hg_bloodimpacts") or CreateConVar("hg_bloodimpacts", 0, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Enable custom blood impact effects spray cool kill death", 0, 1)
+local hg_dmgstack_mass = ConVarExists("hg_dmgstack_mass") and GetConVar("hg_dmgstack_mass") or CreateConVar("hg_dmgstack_mass", 1, FCVAR_ARCHIVE + FCVAR_SERVER_CAN_EXECUTE, "Heavier bullets (by ammo Mass) build up limb/head gib damage faster, up to 1.5x", 0, 1)
 
 local net, math, hg, IsValid = net, math, hg, IsValid
 local takeRagdollDamage
@@ -607,9 +608,11 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	attacker.harm = dmgInfo:GetDamage() / 100
 	
 	if ply or org.fakePlayer then
-		hook_Run("PreHomigradDamage", org.fakePlayer and ent or ply, dmgInfo, hitgroup, ent, attacker.harm, hitBoxs, inputHole)
+		-- fired before the organ trace so hooks can still scale damage; organ hit info isn't known yet
+		local preHitgroup = tr.Entity == ent and bonetohitgroup[ent:GetBoneName(ent:TranslatePhysBoneToBone(tr.PhysicsBone))] or nil
+		hook_Run("PreHomigradDamage", org.fakePlayer and ent or ply, dmgInfo, preHitgroup, ent, attacker.harm, {}, {})
 	end
-	
+
 	local dmg_before = dmgInfo:GetDamage()
 
 	local lastPos, hitBoxs, inputHole, outputHole, outputDir, distance, tracePoses = nil,{},{},{},{},nil,nil
@@ -935,8 +938,15 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	local damageStack = dmg_before / (dmgInfo:IsDamageType(DMG_BULLET) and RagdollDamageBoneMul[hitgroup] or 1)
 	--print(damageStack, 3)
 	damageStack = damageStack * (dmgInfo:IsDamageType(DMG_BLAST) and 200 / lend or 1) * (!dmgInfo:IsDamageType(DMG_CLUB+DMG_SLASH+DMG_BULLET+DMG_BLAST+DMG_SNIPER) and 0 or 1) * (ent:IsNPC() and 3 or 1)
-	--damageStack = damageStack * (bullet and bullet.AmmoType and hg.ammotypeshuy[bullet.AmmoType] and hg.ammotypeshuy[bullet.AmmoType].BulletSettings and hg.ammotypeshuy[bullet.AmmoType].BulletSettings.Mass or 1) / 8
-	
+	-- heavier projectiles build up the dismemberment stack faster (never slower than before)
+	if hg_dmgstack_mass:GetBool() and bullet and dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT) then
+		local ammo = bullet.AmmoType and hg.ammotypeshuy[bullet.AmmoType]
+		local settings = ammo and ammo.BulletSettings
+		if settings and settings.Mass and not settings.RubberBullets then
+			damageStack = damageStack * math.Clamp(math.sqrt(settings.Mass / 10), 1, 1.5)
+		end
+	end
+
 	org.dmgstack = org.dmgstack or {}
 	org.dmgstack[hitgroup] = org.dmgstack[hitgroup] or {}
 	local mul = (org.dmgstack[hitgroup][3] or 0) + 1

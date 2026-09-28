@@ -225,14 +225,14 @@ bloodparticles_hook[2] = function(mul)
 				--local down = vecDown * mul * (math.max(0, grav))
 				local down = result.HitNormal
 				local nextpos = (result.Normal + down):GetNormalized() * 5
-				
+				local insolid = result.StartSolid and IsValid(result.Entity)
+
 				if !insolid and (part.nextput or 0) < CurTime() then
 					part.nextput = CurTime() + 1
 
 					decalBlood(result.HitPos, result.HitNormal, result, part.artery, part.owner)
 				end
 
-				local insolid = result.StartSolid and IsValid(result.Entity)
 				if insolid then
 					if result.Entity:IsVehicle() then
 						table_remove(hg.bloodparticles1, i)

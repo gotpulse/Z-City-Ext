@@ -1,6 +1,18 @@
 --local Organism = hg.organism
+-- returns the round's penetration if the hit came from a less-lethal (rubber) round, nil otherwise
+local function rubberPenetration(dmgInfo)
+	local inf = dmgInfo:GetInflictor()
+	if not IsValid(inf) then return end
+
+	local bullet = inf.bullet
+	local ammo = bullet and bullet.AmmoType and hg.ammotypeshuy[bullet.AmmoType]
+	if inf.RubberBullets or (ammo and ammo.BulletSettings and ammo.BulletSettings.RubberBullets) then
+		return (bullet and bullet.Penetration) or inf.Penetration or 1
+	end
+end
+
 local function isCrush(dmgInfo)
-	return (not dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT + DMG_BLAST)) or dmgInfo:GetInflictor().RubberBullets
+	return (not dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT + DMG_BLAST)) or rubberPenetration(dmgInfo) ~= nil
 end
 
 local halfValue2 = util.halfValue2
@@ -16,7 +28,8 @@ local function damageBone(org, bone, dmg, dmgInfo, key, boneindex, dir, hit, ric
 	if crush then
 		crush = halfValue2(1 - org[key], 1, 0.5)
 		dmg = dmg / math.max(10 * crush * (bone or 1), 1)
-		if dmgInfo:GetInflictor().RubberBullets then dmg = dmg * dmgInfo:GetInflictor().Penetration end
+		local rubberPen = rubberPenetration(dmgInfo)
+		if rubberPen then dmg = dmg * rubberPen end
 	end
 
 	local val = org[key]
